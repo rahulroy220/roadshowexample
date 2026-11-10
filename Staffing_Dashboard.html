@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Staffing Dashboard — COE EMEA Ireland</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#eff1f3;
+  --surface:#ffffff;
+  --surface-alt:#f7f8fa;
+  --text:#22272b;
+  --text2:#5b6770;
+  --text3:#8a96a0;
+  --border:#dde1e6;
+  --border-strong:#c4cbd2;
+  --shadow-sm: 0 1px 2px rgba(20,30,40,0.04);
+  --shadow:    0 1px 3px rgba(20,30,40,0.08), 0 0 0 1px rgba(20,30,40,0.02);
+  --shadow-lg: 0 6px 18px rgba(20,30,40,0.10), 0 1px 3px rgba(20,30,40,0.06);
+  --blue:#0070f2; --blue-bg:#e6f0ff;
+  --green:#107e3e; --green-bg:#e6f4ea;
+  --gold:#c87900;  --gold-bg:#fff4d6;
+  --red:#bb0000;   --red-bg:#fbeaea;
+  --purple:#5a1e8c; --purple-bg:#f0e6f7;
+  --teal:#0f828f;  --teal-bg:#e1f4f6;
+  --navy:#1d2d3e;  --navy-bg:#e8ecf0;
+  --amber:#b35900; --amber-bg:#fff0db;
+  --radius: 8px;
+  --radius-sm: 6px;
+}
+body.dark {
+  --bg:#15181c;
+  --surface:#1f2329;
+  --surface-alt:#262b32;
+  --text:#e8ebee;
+  --text2:#9fa9b3;
+  --text3:#6b757e;
+  --border:#2f353c;
+  --border-strong:#3d444c;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow:    0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-lg: 0 6px 18px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+  --blue-bg:#0e2944; --green-bg:#0e2e1d; --gold-bg:#3d2c0a;
+  --red-bg:#3a1414; --purple-bg:#27143a; --teal-bg:#0e2c30;
+  --navy-bg:#1c2530; --amber-bg:#3a2410;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin:0;
+  font-family: "72","72full","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text);
+  font-size:13px; line-height:1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Upload screen ===== */
+#upload {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(0,112,242,0.05), transparent 50%),
+    radial-gradient(circle at 80% 100%, rgba(15,130,143,0.05), transparent 50%),
+    var(--bg);
+}
+#upload .panel {
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 44px 32px;
+  max-width: 540px; width: 100%; text-align: center;
+  position: relative;
+}
+#upload .panel::before {
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+#upload h1 {
+  margin:0 0 6px; font-size: 22px; font-weight:600; letter-spacing:-0.2px;
+}
+#upload .sub {
+  color: var(--text2); font-size: 13px; margin-bottom: 28px;
+}
+#dropzone {
+  display: block;
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm);
+  padding: 38px 24px; cursor: pointer;
+  background: var(--surface-alt);
+  transition: all .15s ease; margin-bottom: 14px;
+}
+#dropzone:hover, #dropzone.drag {
+  border-color: var(--blue); border-style: solid;
+  background: var(--blue-bg);
+}
+#dropzone .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.8; }
+#dropzone .t { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+#dropzone .h { font-size: 12px; color: var(--text2); }
+#upload input[type=file] { display: none; }
+#upload .err {
+  color: var(--red); font-size: 12px; margin-top: 12px; min-height: 16px;
+  font-weight: 500;
+}
+#upload .hint {
+  font-size: 11.5px; color: var(--text2); margin-top: 22px; text-align: left;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px; line-height: 1.5;
+}
+#upload .hint b { color: var(--text); }
+
+/* ===== Dashboard layout ===== */
+#dashboard { display: none; }
+
+header {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:14px 32px;
+  display:flex; align-items:center; gap:18px;
+  position:sticky; top:0; z-index:20;
+  box-shadow: var(--shadow-sm);
+}
+header .brand { display:flex; align-items:center; gap:10px; }
+header .logo {
+  width:28px; height:28px; border-radius:6px;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:13px; letter-spacing:-0.5px;
+}
+header h1 { margin:0; font-size:15px; font-weight:600; letter-spacing:-0.1px; }
+header .sub { color:var(--text2); font-size:12px; }
+header .spacer { flex:1; }
+header button {
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:6px 14px; border-radius: var(--radius-sm); cursor:pointer;
+  font-size:12px; font-weight:500; transition: all .12s ease;
+}
+header button:hover { background:var(--surface-alt); border-color: var(--border-strong); }
+header button.primary {
+  background:var(--blue); border-color:var(--blue); color:#fff;
+}
+header button.primary:hover { filter: brightness(1.08); }
+
+main { max-width: 1480px; margin: 0 auto; padding: 0 32px 40px; }
+
+/* ===== Week bar ===== */
+.weekbar {
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin: 24px 0 0;
+  box-shadow:var(--shadow);
+  font-size:12.5px;
+  position: relative;
+}
+.weekbar::before {
+  content:""; position:absolute; left:0; top:14px; bottom:14px;
+  width:3px; border-radius:2px; background: var(--blue);
+}
+.weekbar > * { padding-left: 0; }
+.weekbar > :first-child { padding-left: 8px; }
+.weekbar label { display:flex; align-items:center; gap:8px; color:var(--text2); }
+.weekbar label span { color:var(--text); font-weight:500; }
+.weekbar select {
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:6px 10px; border-radius:var(--radius-sm); font-size:12px;
+  font-weight:500; cursor:pointer;
+}
+.weekbar select:hover { border-color: var(--border-strong); }
+.weekbar .wk-toggle input {
+  width:16px; height:16px; accent-color: var(--blue); cursor:pointer;
+}
+.weekbar .free-btn {
+  background:var(--green); color:#fff; border:0;
+  padding:7px 14px; border-radius:var(--radius-sm); cursor:pointer;
+  font-size:12px; font-weight:600;
+  display:inline-flex; align-items:center; gap:6px;
+  transition: filter .12s ease, transform .08s ease;
+}
+.weekbar .free-btn:hover { filter: brightness(1.08); }
+.weekbar .free-btn:active { transform: translateY(1px); }
+.weekbar .free-btn::before {
+  content:""; width:6px; height:6px; border-radius:50%; background:#fff;
+}
+.weekbar .wk-info {
+  color:var(--text2); font-size:11.5px; margin-left:auto;
+  display:flex; align-items:center; gap:6px;
+}
+.weekbar .wk-info::before {
+  content:""; width:6px; height:6px; border-radius:50%; background: var(--blue);
+}
+
+/* ===== KPIs ===== */
+.kpis {
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap:12px; margin-top: 16px;
+}
+.kpi {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius: var(--radius);
+  padding:14px 16px 16px;
+  box-shadow:var(--shadow);
+  position: relative; overflow: hidden;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.kpi::before {
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--border-strong);
+}
+.kpi .v {
+  font-size:28px; font-weight:700; line-height:1.05; letter-spacing:-0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.kpi .l {
+  font-size:10.5px; color:var(--text2); font-weight:600;
+  text-transform:uppercase; letter-spacing:0.7px; margin-top:8px;
+}
+.kpi.red::before    { background:var(--red);   } .kpi.red    .v { color:var(--red); }
+.kpi.amber::before  { background:var(--amber); } .kpi.amber  .v { color:var(--amber); }
+.kpi.blue::before   { background:var(--blue);  } .kpi.blue   .v { color:var(--blue); }
+.kpi.green::before  { background:var(--green); } .kpi.green  .v { color:var(--green); }
+.kpi.gold::before   { background:var(--gold);  } .kpi.gold   .v { color:var(--gold); }
+.kpi.purple::before { background:var(--purple);} .kpi.purple .v { color:var(--purple); }
+.kpi.teal::before   { background:var(--teal);  } .kpi.teal   .v { color:var(--teal); }
+.kpi.navy::before   { background:var(--navy);  } .kpi.navy   .v { color:var(--navy); }
+body.dark .kpi.navy .v { color: #c4d3e2; }
+
+/* ===== Sections ===== */
+.section { margin-top: 28px; }
+.section-head {
+  display:flex; align-items:baseline; gap:12px; margin-bottom: 14px;
+}
+.section-head h2 {
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text2); margin: 0;
+}
+.section-head .accent { flex:1; height:1px; background: var(--border); }
+
+/* ===== Controls ===== */
+.controls {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  margin-bottom:14px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:10px 12px;
+  box-shadow: var(--shadow-sm);
+}
+.controls input, .controls select {
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:6px 10px; border-radius:var(--radius-sm); font-size:12px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.controls input { min-width:240px; }
+.controls input:focus, .controls select:focus {
+  outline: none; border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-bg);
+}
+
+.legend { display:flex; gap:14px; align-items:center; font-size:11px; color:var(--text2); margin-left:auto; flex-wrap:wrap; }
+.legend > span { display:inline-flex; align-items:center; gap:5px; }
+.legend span.sw {
+  display:inline-block; width:14px; height:14px; border-radius:3px;
+  border:1px solid rgba(0,0,0,0.06);
+}
+.sw.free   { background:var(--green-bg); }
+.sw.light  { background:var(--blue-bg); }
+.sw.busy   { background:var(--gold-bg); }
+.sw.over   { background:var(--red-bg); }
+.sw.absent { background:repeating-linear-gradient(45deg,#cbd3dc,#cbd3dc 3px,#e5e8eb 3px,#e5e8eb 6px); }
+body.dark .sw.absent { background:repeating-linear-gradient(45deg,#3d444c,#3d444c 3px,#2f353c 3px,#2f353c 6px); }
+
+/* ===== Heatmap ===== */
+.heatmap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:auto; max-height:680px;
+}
+table.hm { border-collapse:separate; border-spacing:0; width:100%; font-size:12px; }
+table.hm th, table.hm td {
+  padding:8px 10px; text-align:center;
+  border-bottom:1px solid var(--border);
+}
+table.hm thead th {
+  position:sticky; top:0; background:var(--surface-alt); z-index:2;
+  font-weight:600; color:var(--text2);
+  text-transform:uppercase; font-size:10.5px; letter-spacing:0.6px;
+  border-bottom: 2px solid var(--border-strong);
+}
+table.hm tbody tr:hover { background: var(--surface-alt); }
+table.hm tbody tr:hover th { background: var(--surface-alt); }
+table.hm tbody th {
+  position:sticky; left:0; background:var(--surface); z-index:1; text-align:left;
+  font-weight:500; min-width:220px; padding-left:16px; cursor:pointer;
+  border-right: 1px solid var(--border);
+  transition: color .12s ease;
+}
+table.hm tbody th:hover { color: var(--blue); }
+table.hm td.cell {
+  font-weight:600; min-width:46px; position:relative;
+  font-variant-numeric: tabular-nums;
+}
+.cell.l-free  { background:var(--green-bg); color:var(--green); }
+.cell.l-light { background:var(--blue-bg);  color:var(--blue); }
+.cell.l-busy  { background:var(--gold-bg);  color:var(--gold); }
+.cell.l-over  { background:var(--red-bg);   color:var(--red); }
+body.dark .cell.l-free  { color:#7ed79c; }
+body.dark .cell.l-light { color:#7ab9ff; }
+body.dark .cell.l-busy  { color:#ffc97a; }
+body.dark .cell.l-over  { color:#ff8a8a; }
+.cell .ab {
+  position:absolute; top:2px; right:4px; font-size:10px; opacity:0.85;
+  pointer-events: none;
+}
+td.tot {
+  font-weight:700; background:var(--surface-alt);
+  border-left: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+table.hm tbody tr:last-child td, table.hm tbody tr:last-child th { border-bottom: 0; }
+
+/* ===== Cards ===== */
+.cards {
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap:14px;
+}
+.card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:0; box-shadow:var(--shadow);
+  position: relative; overflow: hidden;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.card::before {
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--border-strong);
+}
+.card.over::before   { background:var(--red); }
+.card.busy::before   { background:var(--amber); }
+.card.light::before  { background:var(--blue); }
+.card.free::before   { background:var(--green); }
+
+.card-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+.card .name {
+  font-size:14.5px; font-weight:600; margin-bottom:3px; letter-spacing:-0.1px;
+  display:flex; align-items:center; gap:8px;
+}
+.card .status-pill {
+  display:inline-block; font-size:9.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.6px;
+  padding: 2px 8px; border-radius: 10px;
+}
+.card.over  .status-pill { background:var(--red-bg); color:var(--red); }
+.card.busy  .status-pill { background:var(--amber-bg); color:var(--amber); }
+.card.light .status-pill { background:var(--blue-bg); color:var(--blue); }
+.card.free  .status-pill { background:var(--green-bg); color:var(--green); }
+
+.card .meta { font-size:11.5px; color:var(--text2); }
+.card .meta-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.card .meta-row .dot { width:3px; height:3px; border-radius:50%; background:var(--text3); }
+
+.card .stats {
+  display:grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.card .stats > div {
+  padding: 12px 10px; text-align:center;
+  border-right: 1px solid var(--border);
+  font-size:10.5px; color:var(--text2);
+  font-weight:500;
+}
+.card .stats > div:last-child { border-right: 0; }
+.card .stats b {
+  display:block; font-size:18px; font-weight:700; margin-bottom:2px;
+  color: var(--text); letter-spacing:-0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.card .stats .s-over   b { color:var(--red); }
+.card .stats .s-busy   b { color:var(--amber); }
+.card .stats .s-light  b { color:var(--blue); }
+.card .stats .s-free   b { color:var(--green); }
+
+.card-body { padding: 14px 18px 16px; }
+.card h4 {
+  font-size:10px; text-transform:uppercase; letter-spacing:0.8px;
+  color:var(--text3); margin: 14px 0 6px; font-weight:700;
+}
+.card h4:first-child { margin-top: 0; }
+.card ul { list-style:none; padding:0; margin:0; font-size:12px; }
+.card .cust li {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 0; border-bottom:1px solid var(--border);
+  font-size: 12px;
+}
+.card .cust li:last-child { border-bottom:0; }
+.card .cust li span { color: var(--text); }
+.card .cust li b {
+  color: var(--text2); font-weight:600;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+.card .items li {
+  padding:8px 0; border-bottom:1px solid var(--border);
+  font-size:11.5px;
+}
+.card .items li:last-child { border-bottom:0; }
+.card .items .row1 {
+  display:flex; justify-content:space-between; gap:8px; align-items: center;
+  margin-bottom: 3px;
+}
+.card .items .row1 > span { font-size: 12px; }
+.card .items .desc { color:var(--text2); font-size:11px; line-height:1.4; }
+
+.badge {
+  display:inline-block; padding:2px 8px; border-radius:10px;
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  white-space: nowrap;
+}
+.b-conf  { background:var(--green-bg); color:var(--green); }
+.b-tbs   { background:var(--gold-bg);  color:var(--gold); }
+.b-prep  { background:var(--blue-bg);  color:var(--blue); }
+.b-other { background:var(--surface-alt); color:var(--text2); border:1px solid var(--border); }
+
+footer {
+  padding: 24px 0 8px; color:var(--text3); font-size:11px;
+  text-align:center; border-top: 1px solid var(--border);
+  margin-top: 32px;
+}
+
+/* ===== Empty state ===== */
+.empty {
+  background: var(--surface); border: 1px dashed var(--border-strong);
+  border-radius: var(--radius); padding: 40px 20px;
+  text-align: center; color: var(--text2); font-size: 12.5px;
+}
+
+/* ===== Modal ===== */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.modal[hidden] { display: none; }
+.modal-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(15, 22, 30, 0.55);
+  backdrop-filter: blur(2px);
+}
+.modal-panel {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  width: 100%; max-width: 760px; max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: modalIn .18s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+.modal-head {
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface), var(--surface-alt));
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.modal-eyebrow {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--blue); margin-bottom: 4px;
+}
+.modal-head h2 {
+  margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.2px;
+}
+.modal-head .modal-close {
+  margin-left: auto;
+  background: transparent; border: 0;
+  font-size: 24px; line-height: 1; color: var(--text2);
+  cursor: pointer; padding: 4px 8px; border-radius: 4px;
+}
+.modal-head .modal-close:hover { background: var(--surface-alt); color: var(--text); }
+
+.modal-body {
+  padding: 22px 28px;
+  overflow-y: auto; flex: 1;
+  font-size: 13px; line-height: 1.55;
+}
+.modal-body .sm-tiles {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-bottom: 22px;
+}
+.modal-body .sm-tile {
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+}
+.modal-body .sm-tile .v {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.modal-body .sm-tile .l {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text2); font-weight: 600; margin-top: 2px;
+}
+.modal-body .sm-tile.green .v { color: var(--green); }
+.modal-body .sm-tile.red .v   { color: var(--red); }
+.modal-body .sm-tile.amber .v { color: var(--amber); }
+.modal-body .sm-tile.blue .v  { color: var(--blue); }
+
+.modal-body h3 {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.9px;
+  color: var(--text2); margin: 18px 0 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.modal-body h3:first-child { margin-top: 0; }
+.modal-body p { margin: 0 0 8px; }
+.modal-body .lead { font-size: 13.5px; color: var(--text); margin-bottom: 12px; }
+.modal-body ul { margin: 0; padding-left: 18px; }
+.modal-body ul li { margin-bottom: 4px; }
+.modal-body .name-list {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 0; list-style: none;
+}
+.modal-body .name-list li {
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 14px; padding: 3px 10px; font-size: 11.5px;
+  margin: 0;
+}
+.modal-body .empty-line {
+  color: var(--text3); font-style: italic; font-size: 12px;
+}
+
+.modal-foot {
+  padding: 14px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-alt);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+.modal-foot button {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px;
+  font-weight: 500; cursor: pointer;
+}
+.modal-foot button:hover { background: var(--bg); border-color: var(--border-strong); }
+.modal-foot button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.modal-foot button.primary:hover { filter: brightness(1.08); }
+
+@media (max-width: 640px) {
+  .modal-body .sm-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div id="upload">
+  <div class="panel">
+    <h1>Welcome to the Staffing Cockpit</h1>
+    <div class="sub">Delivery Team COE EMEA Ireland</div>
+
+    <label id="dropzone" for="fileInput">
+      <div class="icon">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--blue);">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="t">Drop the staffing Excel here, or click to browse</div>
+      <div class="h">Expects RPTASTDataSet.xlsx (.xlsx / .xls)</div>
+    </label>
+    <input id="fileInput" type="file" accept=".xlsx,.xls">
+    <div class="err" id="err"></div>
+
+    <div class="hint">
+      <b>What this does:</b> the file is parsed entirely in your browser &mdash; nothing is uploaded
+      to a server. The dashboard then shows a load heatmap and one card per
+      consultant with their customers, assignments, and status badges.
+    </div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <header>
+    <div class="brand">
+      <div class="logo">SC</div>
+      <div>
+        <h1>Staffing Cockpit</h1>
+        <div class="sub" id="subTitle"></div>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <button class="primary" onclick="openSummary()">Summary — this week</button>
+    <button onclick="resetUpload()">Load new file</button>
+    <button onclick="document.body.classList.toggle('dark')">Toggle theme</button>
+  </header>
+
+  <main>
+  <div class="weekbar">
+    <label class="wk-toggle">
+      <input type="checkbox" id="curWeekOnly" checked>
+      <span>Show only the focus week and beyond</span>
+    </label>
+    <label>Focus week:
+      <select id="focusCw"></select>
+    </label>
+    <button id="freeNow" class="free-btn">Show consultants free this week</button>
+    <span class="wk-info" id="wkInfo"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2 id="hmTitle">Heatmap &mdash; peak weekly load per consultant</h2>
+      <div class="accent"></div>
+    </div>
+    <div class="controls">
+      <input id="hmSearch" type="search" placeholder="Filter by name&hellip;">
+      <select id="hmBucket">
+        <option value="all">All loads</option>
+        <option value="over">Overbooked only (5d+)</option>
+        <option value="busy">Busy (3-4d)</option>
+        <option value="light">Light (1-2d)</option>
+        <option value="free">Free</option>
+      </select>
+      <select id="hmSort">
+        <option value="load">Sort: peak load (desc)</option>
+        <option value="name">Sort: name</option>
+        <option value="total">Sort: total days</option>
+      </select>
+      <span class="legend">
+        <span><span class="sw free"></span>Free</span>
+        <span><span class="sw light"></span>1&ndash;2d</span>
+        <span><span class="sw busy"></span>3&ndash;4d</span>
+        <span><span class="sw over"></span>5d+</span>
+        <span><span class="sw absent"></span>Holiday/absence</span>
+      </span>
+    </div>
+    <div class="heatmap"><table class="hm" id="hm"></table></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2 id="cdTitle">Consultant Cards</h2>
+      <div class="accent"></div>
+    </div>
+    <div class="controls">
+      <input id="cdSearch" type="search" placeholder="Filter by name or customer&hellip;">
+      <select id="cdBucket">
+        <option value="all">All</option>
+        <option value="over">Overbooked only</option>
+        <option value="busy">Busy</option>
+        <option value="light">Light</option>
+        <option value="free">Free</option>
+      </select>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <footer id="footer"></footer>
+  </main>
+</div>
+
+<div id="summaryModal" class="modal" hidden>
+  <div class="modal-backdrop" onclick="closeSummary()"></div>
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div>
+        <div class="modal-eyebrow">Executive view</div>
+        <h2 id="summaryTitle">Weekly Summary</h2>
+      </div>
+      <button class="modal-close" onclick="closeSummary()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="summaryBody"></div>
+    <div class="modal-foot">
+      <button onclick="copySummary()">Copy as text</button>
+      <button class="primary" onclick="closeSummary()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA = null;
+let FREE_THIS_WEEK_MODE = false;
+const ABSENCE_KEYWORDS = ["HOLIDAY","ABSENCE","VACATION","LEAVE","PUBLIC HOL"];
+const REQUIRED_COLS = ["ConsultantName","Duration","CW"];
+
+function isAbsence(item, customer) {
+  const s = ((item || "") + " " + (customer || "")).toUpperCase();
+  return ABSENCE_KEYWORDS.some(k => s.includes(k));
+}
+
+function aggregate(rows) {
+  const cdata = {};
+  const cwSet = new Set();
+  for (const r of rows) {
+    const c = (r.ConsultantName || "").toString().trim();
+    if (!c) continue;
+    const cw = parseInt(r.CW);
+    if (!cw) continue;
+    cwSet.add(cw);
+    const dur = parseFloat(r.Duration) || 0;
+    const customer = (r.CustomerName || "").toString().trim();
+    const item = (r.ItemDescription || "").toString().trim();
+    const absence = isAbsence(item, customer);
+
+    if (!cdata[c]) {
+      cdata[c] = {
+        load: {}, absence: {}, customers: {},
+        items: [], total_billable: 0, total_absence: 0, peak: 0,
+        team: r.ServiceTeamName || "", servarea: r.ServArea || "",
+      };
+    }
+    const cd = cdata[c];
+    if (!cd.team && r.ServiceTeamName) cd.team = r.ServiceTeamName;
+    if (!cd.servarea && r.ServArea) cd.servarea = r.ServArea;
+
+    if (absence) {
+      cd.absence[cw] = (cd.absence[cw] || 0) + dur;
+      cd.total_absence += dur;
+    } else {
+      cd.load[cw] = (cd.load[cw] || 0) + dur;
+      cd.total_billable += dur;
+      if (customer) cd.customers[customer] = (cd.customers[customer] || 0) + dur;
+    }
+    cd.items.push({
+      cw, dur, customer, item, absence,
+      qual: r.QualificationTxt || "",
+      status: r.HeaderStatusTxt || "",
+      country: r.Country || "",
+      location: r.Location || "",
+    });
+  }
+
+  for (const c in cdata) {
+    const cd = cdata[c];
+    cd.peak = Object.values(cd.load).reduce((a,b) => Math.max(a,b), 0);
+    cd.customers = Object.entries(cd.customers).sort((a,b) => b[1]-a[1]);
+    cd.items.sort((a,b) => (a.cw - b.cw) || a.customer.localeCompare(b.customer));
+  }
+
+  const consultants = Object.keys(cdata).sort();
+  const cws = [...cwSet].sort((a,b) => a-b);
+
+  let overbooked=0, busy=0, light=0, free=0, total_demand=0, open_demand=0, confirmed=0;
+  for (const c of consultants) {
+    const cd = cdata[c];
+    if (cd.peak >= 5) overbooked++;
+    else if (cd.peak >= 3) busy++;
+    else if (cd.peak >= 1) light++;
+    else free++;
+    total_demand += cd.total_billable;
+    for (const it of cd.items) {
+      if (it.absence) continue;
+      if (it.status === "Delivery confirmed") confirmed += it.dur;
+      else if (it.status === "To be Staffed" || it.status === "Delivery Preparation") open_demand += it.dur;
+    }
+  }
+
+  return {
+    consultants, cws, cdata,
+    kpis: { total_consultants: consultants.length, overbooked, busy, light, free,
+            total_demand, open_demand, confirmed },
+    generated: new Date().toLocaleString(),
+  };
+}
+
+function handleFile(file) {
+  const err = document.getElementById('err');
+  err.textContent = '';
+  if (!file) return;
+  if (!/\.xlsx?$/i.test(file.name)) {
+    err.textContent = 'Please select a .xlsx or .xls file.'; return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval: ""});
+      if (!rows.length) { err.textContent = 'The first sheet is empty.'; return; }
+      const missing = REQUIRED_COLS.filter(c => !(c in rows[0]));
+      if (missing.length) {
+        err.textContent = 'Missing column(s): ' + missing.join(', ') +
+          '. Expected RPTASTDataSet.xlsx headers.'; return;
+      }
+      DATA = aggregate(rows);
+      DATA.sourceFile = file.name;
+      showDashboard();
+    } catch (ex) {
+      console.error(ex);
+      err.textContent = 'Could not parse file: ' + ex.message;
+    }
+  };
+  reader.onerror = () => { err.textContent = 'Could not read file.'; };
+  reader.readAsArrayBuffer(file);
+}
+
+function showDashboard() {
+  document.getElementById('upload').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('subTitle').textContent =
+    'Delivery Team COE EMEA Ireland · ' + DATA.sourceFile + ' · loaded ' + DATA.generated;
+  document.getElementById('footer').textContent =
+    'Data source: ' + DATA.sourceFile + ' · ' + DATA.kpis.total_demand.toFixed(0) +
+    ' billable days across ' + DATA.cws.length + ' weeks';
+
+  // Populate focus-week selector
+  const sel = document.getElementById('focusCw');
+  const def = pickFocusCw();
+  sel.innerHTML = DATA.cws.map(cw =>
+    '<option value="' + cw + '"' + (cw === def ? ' selected' : '') + '>CW' + cw + '</option>'
+  ).join('');
+
+  const now = isoWeekNow();
+  const wkInfo = document.getElementById('wkInfo');
+  if (DATA.cws.includes(now)) {
+    wkInfo.textContent = 'Today is in CW' + now + '.';
+  } else {
+    wkInfo.textContent = 'Today is CW' + now + ' (not in dataset). Showing CW' + def + '.';
+  }
+
+  refreshAll();
+}
+
+function refreshAll() {
+  renderKpis();
+  renderHeatmap();
+  renderCards();
+}
+
+function resetUpload() {
+  DATA = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('err').textContent = '';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload').style.display = 'flex';
+}
+
+function isoWeekNow() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 4 - (d.getDay()||7));
+  const yearStart = new Date(d.getFullYear(),0,1);
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+function pickFocusCw() {
+  if (!DATA) return null;
+  const now = isoWeekNow();
+  if (DATA.cws.includes(now)) return now;
+  const future = DATA.cws.filter(c => c >= now);
+  if (future.length) return future[0];
+  return DATA.cws[DATA.cws.length - 1];
+}
+
+function focusCw() {
+  const sel = document.getElementById('focusCw');
+  return sel.value ? parseInt(sel.value) : pickFocusCw();
+}
+function curWeekOnly() {
+  return document.getElementById('curWeekOnly').checked;
+}
+
+function cwsInScope() {
+  if (!curWeekOnly()) return DATA.cws;
+  const fcw = focusCw();
+  return DATA.cws.filter(cw => cw >= fcw);
+}
+
+function bucketLoadFor(cd) {
+  if (FREE_THIS_WEEK_MODE) return cd.load[focusCw()] || 0;
+  return peakInScope(cd);
+}
+function peakInScope(cd) {
+  const cws = cwsInScope();
+  let p = 0;
+  for (const cw of cws) {
+    const v = cd.load[cw] || 0;
+    if (v > p) p = v;
+  }
+  return p;
+}
+function totalInScope(cd) {
+  const cws = cwsInScope();
+  let t = 0;
+  for (const cw of cws) t += cd.load[cw] || 0;
+  return t;
+}
+function absenceInScope(cd) {
+  const cws = cwsInScope();
+  let t = 0;
+  for (const cw of cws) t += cd.absence[cw] || 0;
+  return t;
+}
+function customersInScope(cd) {
+  if (!curWeekOnly()) return cd.customers;
+  const fcw = focusCw();
+  const m = {};
+  for (const it of cd.items) {
+    if (it.absence || it.cw < fcw || !it.customer) continue;
+    m[it.customer] = (m[it.customer] || 0) + it.dur;
+  }
+  return Object.entries(m).sort((a,b) => b[1]-a[1]);
+}
+function itemsInScope(cd) {
+  if (!curWeekOnly()) return cd.items;
+  const fcw = focusCw();
+  return cd.items.filter(it => it.cw >= fcw);
+}
+
+function renderKpis() {
+  const fcw = focusCw();
+  const scoped = curWeekOnly();
+  const cws = cwsInScope();
+  const cwSet = new Set(cws);
+  let total_consultants = DATA.consultants.length;
+  let overbooked=0, busy=0, light=0, free=0, total_demand=0, open_demand=0, confirmed=0;
+  for (const c of DATA.consultants) {
+    const cd = DATA.cdata[c];
+    const peak = peakInScope(cd);
+    if (peak >= 5) overbooked++;
+    else if (peak >= 3) busy++;
+    else if (peak >= 1) light++;
+    else free++;
+    for (const cw of cws) total_demand += cd.load[cw] || 0;
+    for (const it of cd.items) {
+      if (it.absence) continue;
+      if (scoped && !cwSet.has(it.cw)) continue;
+      if (it.status === "Delivery confirmed") confirmed += it.dur;
+      else if (it.status === "To be Staffed" || it.status === "Delivery Preparation") open_demand += it.dur;
+    }
+  }
+  const suffix = scoped ? ` from CW${fcw}` : '';
+  const demandLabel = 'Demand' + suffix + ' (d)';
+  const confLabel   = 'Confirmed' + suffix + ' (d)';
+  const openLabel   = 'Open' + suffix + ' (d)';
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi navy"><div class="v">' + total_consultants + '</div><div class="l">Consultants</div></div>' +
+    '<div class="kpi red"><div class="v">' + overbooked + '</div><div class="l">Overbooked (5d+)</div></div>' +
+    '<div class="kpi amber"><div class="v">' + busy + '</div><div class="l">Busy (3-4d)</div></div>' +
+    '<div class="kpi blue"><div class="v">' + light + '</div><div class="l">Light (1-2d)</div></div>' +
+    '<div class="kpi green"><div class="v">' + free + '</div><div class="l">Free</div></div>' +
+    '<div class="kpi gold"><div class="v">' + total_demand.toFixed(0) + '</div><div class="l">' + demandLabel + '</div></div>' +
+    '<div class="kpi teal"><div class="v">' + confirmed.toFixed(0) + '</div><div class="l">' + confLabel + '</div></div>' +
+    '<div class="kpi purple"><div class="v">' + open_demand.toFixed(0) + '</div><div class="l">' + openLabel + '</div></div>';
+}
+
+function bucketFor(peak) {
+  if (peak >= 5) return 'over';
+  if (peak >= 3) return 'busy';
+  if (peak >= 1) return 'light';
+  return 'free';
+}
+
+function renderHeatmap() {
+  if (!DATA) return;
+  const search = document.getElementById('hmSearch').value.toLowerCase();
+  const bucket = document.getElementById('hmBucket').value;
+  const sortBy = document.getElementById('hmSort').value;
+  const scoped = curWeekOnly();
+  const fcw = focusCw();
+  const cwsToShow = cwsInScope();
+
+  document.getElementById('hmTitle').textContent = scoped
+    ? `Heatmap — load from CW${fcw} onwards`
+    : 'Heatmap — peak weekly load per consultant';
+
+  let consultants = DATA.consultants.slice().filter(c => {
+    if (search && !c.toLowerCase().includes(search)) return false;
+    const filterLoad = bucketLoadFor(DATA.cdata[c]);
+    if (bucket !== 'all' && bucketFor(filterLoad) !== bucket) return false;
+    return true;
+  });
+
+  consultants.sort((a, b) => {
+    if (sortBy === 'name') return a.localeCompare(b);
+    if (sortBy === 'total') return totalInScope(DATA.cdata[b]) - totalInScope(DATA.cdata[a]);
+    return peakInScope(DATA.cdata[b]) - peakInScope(DATA.cdata[a]) || a.localeCompare(b);
+  });
+
+  let html = '<thead><tr><th>Consultant</th>';
+  for (const cw of cwsToShow) html += '<th>CW' + cw + '</th>';
+  html += '<th>Total</th></tr></thead><tbody>';
+
+  for (const c of consultants) {
+    const cd = DATA.cdata[c];
+    html += '<tr><th data-c="' + c + '">' + c + '</th>';
+    for (const cw of cwsToShow) {
+      const load = cd.load[cw] || 0;
+      const ab = cd.absence[cw] || 0;
+      const cls = 'l-' + bucketFor(load);
+      const abIcon = ab > 0 ? '<span class="ab" title="' + ab + 'd absence">&#127956;</span>' : '';
+      html += '<td class="cell ' + cls + '">' + (load > 0 ? load : '') + abIcon + '</td>';
+    }
+    html += '<td class="tot">' + totalInScope(cd).toFixed(0) + '</td></tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('hm').innerHTML = html;
+
+  document.querySelectorAll('#hm tbody th').forEach(th => {
+    th.addEventListener('click', () => {
+      const c = th.dataset.c;
+      const card = document.querySelector('.card[data-c="' + c + '"]');
+      if (card) {
+        card.scrollIntoView({behavior:'smooth', block:'center'});
+        card.style.outline = '2px solid var(--blue)';
+        setTimeout(() => card.style.outline = '', 1500);
+      }
+    });
+  });
+}
+
+function statusBadge(status) {
+  const cls = status === 'Delivery confirmed' ? 'b-conf'
+            : status === 'To be Staffed' ? 'b-tbs'
+            : status === 'Delivery Preparation' ? 'b-prep'
+            : 'b-other';
+  return '<span class="badge ' + cls + '">' + (status || '—') + '</span>';
+}
+
+function renderCards() {
+  if (!DATA) return;
+  const search = document.getElementById('cdSearch').value.toLowerCase();
+  const bucket = document.getElementById('cdBucket').value;
+  const scoped = curWeekOnly();
+  const fcw = focusCw();
+
+  document.getElementById('cdTitle').textContent = scoped
+    ? `Consultant Cards — from CW${fcw} onwards`
+    : 'Consultant Cards';
+
+  let html = '';
+
+  const consultants = DATA.consultants.slice().sort(
+    (a, b) => peakInScope(DATA.cdata[b]) - peakInScope(DATA.cdata[a]) || a.localeCompare(b)
+  );
+
+  for (const c of consultants) {
+    const cd = DATA.cdata[c];
+    const peak = peakInScope(cd);
+    const b = bucketFor(peak);
+    const filterB = bucketFor(bucketLoadFor(cd));
+    if (bucket !== 'all' && filterB !== bucket) continue;
+    const customers = customersInScope(cd);
+    const items = itemsInScope(cd);
+    const matchSearch = !search ||
+      c.toLowerCase().includes(search) ||
+      customers.some(([cust]) => cust.toLowerCase().includes(search));
+    if (!matchSearch) continue;
+
+    const totalLabel = scoped ? 'days · CW' + fcw + '+' : 'total days';
+    const absLabel   = scoped ? 'absence · CW' + fcw + '+' : 'absence days';
+
+    const custHtml = customers.length === 0
+      ? '<li><i style="color:var(--text2)">' + (scoped ? 'Nothing booked from CW' + fcw : 'No billable assignments') + '</i></li>'
+      : customers.map(([cust, d]) =>
+          '<li><span>' + cust + '</span><b>' + d.toFixed(0) + 'd</b></li>'
+        ).join('');
+
+    const itemsHtml = items.length === 0
+      ? '<li style="color:var(--text2)"><i>No assignments' + (scoped ? ' from CW' + fcw : '') + '</i></li>'
+      : items.map(it => {
+          const desc = (it.item || '') +
+            (it.qual ? ' · ' + it.qual : '') +
+            (it.country ? ' · ' + it.country : '');
+          const left = (it.absence ? '\u{1F3D6}️ ' : '') +
+            '<b>CW' + it.cw + '</b> · ' + (it.customer || '—') + ' · ' + it.dur + 'd';
+          return '<li>' +
+            '<div class="row1"><span>' + left + '</span>' +
+            (!it.absence ? statusBadge(it.status) : '') + '</div>' +
+            '<div class="desc">' + desc + '</div>' +
+            '</li>';
+        }).join('');
+
+    const bucketLabel = {over:'Overbooked', busy:'Busy', light:'Light', free:'Available'}[b];
+    const peakUnit = scoped ? `peak / wk from CW${fcw}` : 'peak / wk';
+
+    html += '<div class="card ' + b + '" data-c="' + c + '">' +
+      '<div class="card-head">' +
+        '<div class="name">' + c +
+          ' <span class="status-pill">' + bucketLabel + '</span></div>' +
+        '<div class="meta meta-row">' +
+          (cd.servarea ? '<span>' + cd.servarea + '</span>' : '') +
+          (cd.servarea && cd.team ? '<span class="dot"></span>' : '') +
+          (cd.team ? '<span>' + cd.team + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="stats">' +
+        '<div class="s-' + b + '"><b>' + peak.toFixed(0) + 'd</b>' + peakUnit + '</div>' +
+        '<div><b>' + totalInScope(cd).toFixed(0) + '</b>' + totalLabel + '</div>' +
+        '<div><b>' + absenceInScope(cd).toFixed(0) + '</b>' + absLabel + '</div>' +
+        '<div><b>' + customers.length + '</b>customers</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<h4>Customers' + (scoped ? ' · from CW' + fcw : '') + '</h4><ul class="cust">' + custHtml + '</ul>' +
+        '<h4>Assignments · ' + items.length + '</h4>' +
+        '<ul class="items">' + itemsHtml + '</ul>' +
+      '</div>' +
+      '</div>';
+  }
+  document.getElementById('cards').innerHTML = html ||
+    '<div style="color:var(--text2)">No consultants match.</div>';
+}
+
+const dz = document.getElementById('dropzone');
+const fi = document.getElementById('fileInput');
+fi.addEventListener('change', e => handleFile(e.target.files[0]));
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+['hmSearch','hmBucket','hmSort'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+  if (id === 'hmBucket') FREE_THIS_WEEK_MODE = false;
+  renderHeatmap();
+}));
+['cdSearch','cdBucket'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+  if (id === 'cdBucket') FREE_THIS_WEEK_MODE = false;
+  renderCards();
+}));
+
+document.getElementById('curWeekOnly').addEventListener('change', () => { FREE_THIS_WEEK_MODE = false; refreshAll(); });
+document.getElementById('focusCw').addEventListener('change', () => { FREE_THIS_WEEK_MODE = false; refreshAll(); });
+document.getElementById('freeNow').addEventListener('click', () => {
+  FREE_THIS_WEEK_MODE = true;
+  document.getElementById('curWeekOnly').checked = true;
+  document.getElementById('hmBucket').value = 'free';
+  document.getElementById('cdBucket').value = 'free';
+  document.getElementById('hmSearch').value = '';
+  document.getElementById('cdSearch').value = '';
+  refreshAll();
+  document.querySelector('.section').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// ===== Executive summary modal =====
+
+function buildSummary() {
+  const cw = focusCw();
+  const consultants = DATA.consultants;
+  const free = [], busy = [], over = [], absent = [];
+  const customerLoad = {};       // customer -> total days this week
+  const customerPeople = {};     // customer -> Set of names
+  const serviceLoad = {};        // service area -> total days
+  let totalDays = 0, confirmed = 0, openDays = 0;
+
+  for (const c of consultants) {
+    const cd = DATA.cdata[c];
+    const load = cd.load[cw] || 0;
+    const ab = cd.absence[cw] || 0;
+    const fullAbsent = load === 0 && ab > 0;
+
+    if (fullAbsent) absent.push(c);
+    else if (load === 0) free.push(c);
+    else if (load >= 5) over.push({name: c, d: load});
+    else if (load >= 3) busy.push({name: c, d: load});
+
+    totalDays += load;
+    for (const it of cd.items) {
+      if (it.cw !== cw || it.absence) continue;
+      if (it.status === 'Delivery confirmed') confirmed += it.dur;
+      else if (it.status === 'To be Staffed' || it.status === 'Delivery Preparation') openDays += it.dur;
+      if (it.customer) {
+        customerLoad[it.customer] = (customerLoad[it.customer] || 0) + it.dur;
+        if (!customerPeople[it.customer]) customerPeople[it.customer] = new Set();
+        customerPeople[it.customer].add(c);
+      }
+      const sa = cd.servarea || 'Other';
+      serviceLoad[sa] = (serviceLoad[sa] || 0) + it.dur;
+    }
+  }
+
+  const topCustomers = Object.entries(customerLoad)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, 8)
+    .map(([cust, d]) => ({
+      cust, d,
+      people: [...(customerPeople[cust] || [])],
+    }));
+
+  const topServices = Object.entries(serviceLoad)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, 6);
+
+  return {
+    cw, consultants: consultants.length,
+    free, busy, over, absent,
+    totalDays, confirmed, openDays,
+    topCustomers, topServices,
+  };
+}
+
+function openSummary() {
+  if (!DATA) return;
+  const s = buildSummary();
+  document.getElementById('summaryTitle').textContent = `Weekly Summary — CW${s.cw}`;
+
+  const tiles =
+    `<div class="sm-tiles">` +
+    `<div class="sm-tile blue"><div class="v">${s.totalDays.toFixed(0)}</div><div class="l">Days delivered</div></div>` +
+    `<div class="sm-tile green"><div class="v">${s.free.length}</div><div class="l">Available</div></div>` +
+    `<div class="sm-tile amber"><div class="v">${s.busy.length}</div><div class="l">Busy (3-4d)</div></div>` +
+    `<div class="sm-tile red"><div class="v">${s.over.length}</div><div class="l">Overbooked (5d+)</div></div>` +
+    `</div>`;
+
+  const lead =
+    `<p class="lead">In <b>CW${s.cw}</b>, the team is delivering <b>${s.totalDays.toFixed(0)} days</b> of work` +
+    ` (${s.confirmed.toFixed(0)} confirmed, ${s.openDays.toFixed(0)} still open).` +
+    ` <b>${s.free.length}</b> of ${s.consultants} consultants have no billable load and are available for new staffing.</p>`;
+
+  const customersHtml = s.topCustomers.length === 0
+    ? `<p class="empty-line">No customer engagements booked this week.</p>`
+    : `<ul>` + s.topCustomers.map(c =>
+        `<li><b>${c.cust}</b> — ${c.d.toFixed(0)}d` +
+        (c.people.length ? ` (${c.people.length} ${c.people.length === 1 ? 'person' : 'people'})` : '') +
+        `</li>`
+      ).join('') + `</ul>`;
+
+  const servicesHtml = s.topServices.length === 0
+    ? `<p class="empty-line">No service activity recorded.</p>`
+    : `<ul>` + s.topServices.map(([sa, d]) =>
+        `<li><b>${sa}</b> — ${d.toFixed(0)}d</li>`
+      ).join('') + `</ul>`;
+
+  const freeHtml = s.free.length === 0
+    ? `<p class="empty-line">Nobody is fully available this week.</p>`
+    : `<ul class="name-list">` + s.free.map(n => `<li>${n}</li>`).join('') + `</ul>`;
+
+  const overHtml = s.over.length === 0 ? '' :
+    `<h3>Watch list — overbooked</h3>` +
+    `<ul class="name-list">` +
+    s.over.sort((a,b) => b.d - a.d).map(o => `<li>${o.name} · ${o.d.toFixed(0)}d</li>`).join('') +
+    `</ul>`;
+
+  const absentHtml = s.absent.length === 0 ? '' :
+    `<h3>Out of office</h3>` +
+    `<ul class="name-list">` + s.absent.map(n => `<li>🏖 ${n}</li>`).join('') + `</ul>`;
+
+  document.getElementById('summaryBody').innerHTML =
+    tiles +
+    lead +
+    `<h3>Top customer engagements</h3>` + customersHtml +
+    `<h3>Where the work is going</h3>` + servicesHtml +
+    `<h3>Available for new work</h3>` + freeHtml +
+    overHtml +
+    absentHtml;
+
+  document.getElementById('summaryModal').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSummary() {
+  document.getElementById('summaryModal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+function copySummary() {
+  const s = buildSummary();
+  const lines = [];
+  lines.push(`Weekly Summary — CW${s.cw}`);
+  lines.push('');
+  lines.push(`Headline: ${s.totalDays.toFixed(0)} days delivered (${s.confirmed.toFixed(0)} confirmed, ${s.openDays.toFixed(0)} open).`);
+  lines.push(`Team: ${s.consultants} consultants — ${s.free.length} available, ${s.busy.length} busy, ${s.over.length} overbooked.`);
+  lines.push('');
+  lines.push('Top customer engagements:');
+  if (s.topCustomers.length === 0) lines.push('  (none)');
+  else for (const c of s.topCustomers)
+    lines.push(`  - ${c.cust}: ${c.d.toFixed(0)}d (${c.people.length} ${c.people.length === 1 ? 'person' : 'people'})`);
+  lines.push('');
+  lines.push('Where the work is going:');
+  if (s.topServices.length === 0) lines.push('  (none)');
+  else for (const [sa, d] of s.topServices)
+    lines.push(`  - ${sa}: ${d.toFixed(0)}d`);
+  lines.push('');
+  lines.push(`Available for new work (${s.free.length}): ${s.free.length ? s.free.join(', ') : 'none'}`);
+  if (s.over.length)
+    lines.push(`Overbooked: ${s.over.sort((a,b)=>b.d-a.d).map(o => `${o.name} (${o.d}d)`).join(', ')}`);
+  if (s.absent.length)
+    lines.push(`Out of office: ${s.absent.join(', ')}`);
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('summaryModal').hidden) closeSummary();
+});
+</script>
+</body>
+</html>
